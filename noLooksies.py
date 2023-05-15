@@ -33,10 +33,32 @@ def stop_client():
             break
     if client:
         client.terminate()
+        tray.notify("League Client Closed!", "NoLooksies")
     time.sleep(2)
     tray.remove_notification()
     running = True
 
+async def stop_client_api():
+    global running, tray
+    client = None
+    for p in psutil.process_iter(['pid', 'name']):
+        if p.info['name'] == 'LeagueClient.exe':
+            client = psutil.Process(p.info['pid'])
+            print (client)
+            break
+    if client:
+        
+        try:
+                await wllp.request('post','/process-control/v1/process/quit')
+                tray.notify("League Client Closed!", "NoLooksies")
+                pass
+        except (aiohttp.client_exceptions.ClientConnectorError, aiohttp.client_exceptions.ClientOSError):
+                print("league is already closed")
+        except RuntimeError:
+                pass
+    time.sleep(2)
+    tray.remove_notification()
+    running = True
 
 async def set_event_listener():
 	#creates a subscription to the server event OnJsonApiEvent (which is all Json updates)
@@ -63,8 +85,7 @@ async def check_for_lp(data):
         print(data['data']['queueType'])
         if data['data']['queueType'] == "RANKED_SOLO_5x5":
             running = False
-            tray.notify("League Client Closed!", "NoLooksies")
-            stop_client()
+            await stop_client_api()
 
 async def check_test(data):
 
@@ -72,9 +93,8 @@ async def check_test(data):
     global tray, queueType
     print (data)  
     if running:
-        tray.notify("League Client Closed!", "NoLooksies")
         print("got there")
-        stop_client()
+        await stop_client_api()
 #Toggles functionality by inverting the Running value
 
 def toggle_program(tray, loop):
