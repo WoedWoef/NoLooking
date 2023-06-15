@@ -39,7 +39,7 @@ def stop_client():
     running = True
 
 async def stop_client_api():
-    global running, tray
+    global running, tray, notHonored
     client = None
     for p in psutil.process_iter(['pid', 'name']):
         if p.info['name'] == 'LeagueClient.exe':
@@ -58,6 +58,7 @@ async def stop_client_api():
                 pass
     time.sleep(2)
     tray.remove_notification()
+    notHonored = True
     running = True
 
 async def set_event_listener():
@@ -65,7 +66,8 @@ async def set_event_listener():
     all_events_subscription = await wllp.subscribe('OnJsonApiEvent',default_handler=default_message_handler)
 	#let's add an endpoint filter, and print when we get messages from this endpoint with our printing listener
     wllp.subscription_filter_endpoint(all_events_subscription, '/lol-ranked/v1/current-lp-change-notification', handler=check_for_lp)
-    #wllp.subscription_filter_endpoint(all_events_subscription, '/lol-summoner/v1/', handler=check_test)
+    #wllp.subscription_filter_endpoint(all_events_subscription, '/lol-honor-v2/v1/ballot', handler=check_test)
+    wllp.subscription_filter_endpoint(all_events_subscription, '/lol-pre-end-of-game/v1/currentSequenceEvent', handler=check_honors)
 
 
 async def wllp_start():
@@ -80,20 +82,33 @@ async def check_for_lp(data):
     print("data = ", data)
     print("data['data'] = ", data['data'])
     global wllp
-    global lp_data, running
+    global lp_data, running, notHonored
     if running and data['data'] != None:
         print(data['data']['queueType'])
         if data['data']['queueType'] == "RANKED_SOLO_5x5":
+            while notHonored:  
+                await asyncio.sleep(0.05)
             running = False
             await stop_client_api()
 
+async def check_honors(data):
+    global notHonored
+    print (data)
+    if data['uri'] == '/lol-pre-end-of-game/v1/currentSequenceEvent':
+        print("got inside the honor function")
+        if data['data']['priority'] == -1:
+            notHonored = False
+            print ("dunnit")
 async def check_test(data):
 
     global wllp
-    global tray, queueType
-    print (data)  
-    if running:
-        print("got there")
+    global tray, queueType, running, notHonored
+    print (data)
+    if data['data'] != None:
+        while notHonored:
+            print(notHonored)
+            await asyncio.sleep(0.05)
+        running = False
         await stop_client_api()
 #Toggles functionality by inverting the Running value
 
