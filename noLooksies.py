@@ -12,7 +12,8 @@ import sys
 import startup
 import time
 os.chdir(sys._MEIPASS)
-global exitflag, running, wllp, tray, status, startstatus
+global exitflag, running, wllp, tray, status, startstatus, notHonored
+notHonored = True
 exitflag = False
 running = True
 icon = Image.open("Icon.png")
@@ -40,22 +41,14 @@ def stop_client():
 
 async def stop_client_api():
     global running, tray, notHonored
-    client = None
-    for p in psutil.process_iter(['pid', 'name']):
-        if p.info['name'] == 'LeagueClient.exe':
-            client = psutil.Process(p.info['pid'])
-            print (client)
-            break
-    if client:
-        
-        try:
-                await wllp.request('post','/process-control/v1/process/quit')
-                tray.notify("League Client Closed!", "NoLooksies")
-                pass
-        except (aiohttp.client_exceptions.ClientConnectorError, aiohttp.client_exceptions.ClientOSError):
-                print("league is already closed")
-        except RuntimeError:
-                pass
+    try:
+            await wllp.request('post','/process-control/v1/process/quit')
+            tray.notify("League Client Closed!", "NoLooksies")
+            pass
+    except (aiohttp.client_exceptions.ClientConnectorError, aiohttp.client_exceptions.ClientOSError):
+            print("league is already closed")
+    except RuntimeError:
+            pass
     time.sleep(2)
     tray.remove_notification()
     notHonored = True
@@ -86,6 +79,7 @@ async def check_for_lp(data):
     if running and data['data'] != None:
         print(data['data']['queueType'])
         if data['data']['queueType'] == "RANKED_SOLO_5x5":
+            notHonored = True
             while notHonored:  
                 await asyncio.sleep(0.05)
             running = False
@@ -176,7 +170,7 @@ def on_start():
     tray.update_menu()
 
 async def main():
-    global wllp    
+    global wllp, notHonored
     loop = asyncio.get_running_loop()
     
     tray_thread = threading.Thread(target=add_to_tray, args=(loop,))
@@ -187,6 +181,7 @@ async def main():
     
     while not exitflag:
         print("waiting")
+        print(notHonored)
         if running:
             try:
                 response = await wllp.request('get','/riotclient/app-name')
@@ -197,7 +192,6 @@ async def main():
                 await wllp_start()
             except RuntimeError:
                 pass
-            print("waiting")
         await asyncio.sleep(8)
 
 if __name__ == '__main__':
