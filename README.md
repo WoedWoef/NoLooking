@@ -7,22 +7,22 @@ Based on the no look challenge invented by Timmifer :tm:
 
 Windows Only!!
 ## Install:
-Download the NoLooksies.exe file from the latest release!
-https://github.com/WoedWoef/NoLooksies/releases/tag/v2.0.0
+Download the NoLooksiesEOG.exe file from the latest release!
+https://github.com/WoedWoef/NoLooksies/releases/tag/v4.0.0
 
 Extract and place the file somewhere on ur pc.
-You can now start the NoLooksies.exe file!
+You can now start the NoLooksiesEOG.exe file!
 
 ## Usage:
 
 When you start the app it becomes a tray icon so you can see it in the bottom right in your task bar.
-The app will now check for the ending of a solo duo ranked game, if it finds one, it will shut down the client so that you cannot see the lp change, and you have to make a conscious decision to play another!
+The app will now check for the ending of a solo duo ranked game, if it finds one, it will skip the end of game stat screen the client so that you cannot see the lp change!
 The app will keep running and looking for new ranked games even when the client closes.
 
 
 ## Options:
 
-Toggle program - Starts and stops the programs functionality, defaults to ON
+Toggle program - Starts and stops the programs functionality, defaults to ON (might not work anymore, if you want to be sure, just click quit)
  
 
 Start on windows startup = <On/Off> - click to toggle the application to start automatically when your pc starts, defaults to OFF
