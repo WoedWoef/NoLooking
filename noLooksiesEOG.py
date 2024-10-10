@@ -29,13 +29,14 @@ async def set_event_listener():
 	#creates a subscription to the server event OnJsonApiEvent (which is all Json updates)
     all_events_subscription = await wllp.subscribe('OnJsonApiEvent',default_handler=default_message_handler)
 	#let's add an endpoint filter, and print when we get messages from this endpoint with our printing listener
-    #wllp.subscription_filter_endpoint(all_events_subscription, '/lol-ranked/v1/current-lp-change-notification', handler=check_test)
+    #wllp.subscription_filter_endpoint(all_events_subscription, '/lol-pre-end-of-game/v1/currentSequenceEvent', handler=print())   
+    #wllp.subscription_filter_endpoint(all_events_subscription, '/lol-honor/v2/ballot', handler=print())
     wllp.subscription_filter_endpoint(all_events_subscription, '/lol-end-of-game/v1/eog-stats-block', handler=check_test)
     
     #wllp.subscription_filter_endpoint(all_events_subscription, '/lol-honor-v2/v1/ballot', handler=check_test)
     #wllp.subscription_filter_endpoint(all_events_subscription, '/lol-pre-end-of-game/v1/currentSequenceEvent', handler=check_honors)
 
-
+#create a function that will put the output of currentsequenceEvent subscription into a textfile
 
 async def wllp_start():
     global wllp
@@ -52,14 +53,12 @@ async def check_test(data):
     print(data)
     if data['data'] != None:
         print(data['data']['queueType'])
-        if data['data']['queueType'] == "RANKED_SOLO_5x5" or data['data']['queueType'] == "UNRANKED_ARAM_5x5":
+        if data['data']['queueType'] == "RANKED_SOLO_5x5" and running:
             print("Game is :", data['data']['queueType'])
+            asyncio.sleep(5)
             await wllp.request('post','/lol-end-of-game/v1/state/dismiss-stats')
             tray.notify("LP screen skipped!", "NoLooksies")
-            #running = False    
 
-       #await stop_client_api()
-#Toggles functionality by inverting the Running value
 
 def toggle_program(tray, loop):
     global running, wllp, status
@@ -70,19 +69,12 @@ def toggle_program(tray, loop):
         status = "Status = Off"
         tray.update_menu()
         running = False
-        try:
-            coroutine = wllp.close()
-            loop.call_soon_threadsafe(asyncio.run_coroutine_threadsafe,coroutine, loop)
-        except NameError as e:
-            print(e)
     else:
         tray.remove_notification()
         tray.notify("Functionality turned back On!", "Toggle")
         status = "Status = On"
         tray.update_menu()
         running = True
-        coroutine = wllp_start()
-        loop.call_soon_threadsafe(asyncio.run_coroutine_threadsafe,coroutine, loop)    
 
 #Quits program        
 def quit(tray, loop):
