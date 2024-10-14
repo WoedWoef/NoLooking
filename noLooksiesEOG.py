@@ -11,9 +11,10 @@ import asyncio
 import sys
 import startup
 import time
-#os.chdir(sys._MEIPASS)
+os.chdir(sys._MEIPASS)
 global exitflag, running, wllp, tray, status, startstatus, notHonored
 notHonored = True
+currentqueue = None
 exitflag = False
 running = True
 icon = Image.open("Icon.png")
@@ -29,9 +30,12 @@ async def set_event_listener():
 	#creates a subscription to the server event OnJsonApiEvent (which is all Json updates)
     all_events_subscription = await wllp.subscribe('OnJsonApiEvent',default_handler=default_message_handler)
 	#let's add an endpoint filter, and print when we get messages from this endpoint with our printing listener
-    #wllp.subscription_filter_endpoint(all_events_subscription, '/lol-pre-end-of-game/v1/currentSequenceEvent', handler=print())   
-    #wllp.subscription_filter_endpoint(all_events_subscription, '/lol-honor/v2/ballot', handler=print())
-    wllp.subscription_filter_endpoint(all_events_subscription, '/lol-end-of-game/v1/eog-stats-block', handler=check_test)
+    #wllp.subscription_filter_endpoint(all_events_subscription, '/riot-messaging-service/v1/message/honor/vote-completion', handler=check_print)   
+    #wllp.subscription_filter_endpoint(all_events_subscription, '/lol-honor-v2/v1/vote-completion', handler=check_print)
+    wllp.subscription_filter_endpoint(all_events_subscription, '/lol-gameflow/v1/gameflow-phase', handler=check_honored)
+    wllp.subscription_filter_endpoint(all_events_subscription, '/lol-end-of-game/v1/eog-stats-block', handler=check_queue)
+    #wllp.subscription_filter_endpoint(all_events_subscription, '/lol-end-of-game/v1/eog-stats-block', handler=check_test)
+
     
     #wllp.subscription_filter_endpoint(all_events_subscription, '/lol-honor-v2/v1/ballot', handler=check_test)
     #wllp.subscription_filter_endpoint(all_events_subscription, '/lol-pre-end-of-game/v1/currentSequenceEvent', handler=check_honors)
@@ -43,8 +47,40 @@ async def wllp_start():
     wllp = await willump.start()
     await set_event_listener()
 
+async def to_jsonfile(data):
+    import json
+    from datetime import datetime
+ 
+    data_with_time = {
+        "timestamp": datetime.now().isoformat(),
+        "data": data
+    }
+
+    with open('data.json', 'a') as f:
+        f.write(json.dumps(data_with_time) + '\n')
+
+
+async def check_queue(data):
+    global currentqueue
+    currentqueue = data['data']['queueType']
+    print("Queue is", currentqueue)
+ 
 async def wllp_close():
     await wllp.close()
+
+
+
+async def check_honored(data):
+    global notHonored
+    print(data)
+    if data['data'] == "EndOfGame" and running and currentqueue == "RANKED_SOLO_5x5":
+        await wllp.request('post','/lol-end-of-game/v1/state/dismiss-stats')
+        tray.notify("LP screen skipped!", "NoLooksies")
+
+        asyncio.sleep(10)
+        notHonored = True
+
+
 
 async def check_test(data):
     global wllp
@@ -53,7 +89,10 @@ async def check_test(data):
     print(data)
     if data['data'] != None:
         print(data['data']['queueType'])
-        if data['data']['queueType'] == "RANKED_SOLO_5x5" and running:
+        if True and running and data['data']['queueType'] == "RANKED_SOLO_5x5" and running:
+            while not notHonored:
+                await asyncio.sleep(0.05)
+
             print("Game is :", data['data']['queueType'])
             asyncio.sleep(5)
             await wllp.request('post','/lol-end-of-game/v1/state/dismiss-stats')
