@@ -8,7 +8,7 @@ Based on the no look challenge invented by Timmifer :tm:
 Windows Only!!
 ## Install:
 Download the NoLooksiesEOG.exe file from the latest release!
-https://github.com/WoedWoef/NoLooksies/releases/tag/v5.0.0
+[https://github.com/WoedWoef/NoLooksies/releases/tag/v5.0.0](https://github.com/WoedWoef/NoLooksies/releases/tag/v5.0)
 
 Extract and place the file somewhere on ur pc.
 You can now start the NoLooksiesEOG.exe file!
